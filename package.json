@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ./"
   },
   "author": "",
   "license": "ISC",
@@ -17,5 +18,8 @@
     "express": "^4.17.1",
     "mongodb": "^4.0.1",
     "nodemon": "^2.0.12"
+  },
+  "devDependencies": {
+    "eslint": "^7.31.0"
   }
 }
