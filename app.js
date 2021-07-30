@@ -2,10 +2,12 @@ import express from 'express'
 import axios from 'axios'
 import bcrypt from 'bcrypt'
 import './db-connection.js'
+import { MongoClient } from 'mongodb'
+import 'dotenv/config'
 
 const app = express()
 const PORT = process.env.PORT || 5000
-
+const client = new MongoClient(process.env.DB_CONNECT)
 
 //Middleware
 app.use(express.json())
@@ -22,14 +24,30 @@ app.get('/', async (req, res) => {
     }
 })
 
-const users = []
-
 app.post('/user/register', async (req, res) => {
-    const hashedPassword = await bcrypt.hash(req.body.password, 10)
-    const user = { name : req.body.name, password: hashedPassword }
-    users.push(user)
-    console.log(users)
+    try {
+        const hashedPassword = await bcrypt.hash(req.body.password, 10)
+        // create a document to be inserted
+        const user = { name: req.body.name, password: hashedPassword }
+        await client.connect();
+        const db = client.db("crypto");
+        const collection = db.collection("users");
+        const result = await collection.updateOne({name: user.name},{$set:{password: hashedPassword}}, {upsert: true});
+        
+        if (result.upsertedCount === 0) {
+            res.json({msg: 'User Already exists'})
+        } else {
+            res.json({msg: 'Welcome to crypto world!'})
+        }
+        console.log(result)
+    } catch (error) {
+        res.json({msg: "Server Error"})
+        console.log(error)
+    } finally {
+        await client.close();
+    }
 })
+
 app.post('/user/signin', async (req, res) => {
     const user = users.find(user => user.name === req.body.name)
     if (!user) {
