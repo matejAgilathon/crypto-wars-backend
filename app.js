@@ -1,6 +1,7 @@
 import express from 'express'
 import axios from 'axios'
 import bcrypt from 'bcrypt'
+import './db-connection.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -24,6 +25,18 @@ app.get('/', async (req, res) => {
 const users = []
 
 app.post('/register', async (req, res) => {
+    const hashedPassword = await bcrypt.hash(req.body.password, 10)
+    const user = { name : req.body.name, password: hashedPassword }
+    users.push(user)
+    console.log(users)
+})
+app.post('/user/register', async (req, res) => {
+    const hashedPassword = await bcrypt.hash(req.body.password, 10)
+    const user = { name : req.body.name, password: hashedPassword }
+    users.push(user)
+    console.log(users)
+})
+app.post('/user/signin', async (req, res) => {
     const hashedPassword = await bcrypt.hash(req.body.password, 10)
     const user = { name : req.body.name, password: hashedPassword }
     users.push(user)
