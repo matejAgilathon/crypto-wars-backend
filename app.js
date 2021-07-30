@@ -24,12 +24,6 @@ app.get('/', async (req, res) => {
 
 const users = []
 
-app.post('/register', async (req, res) => {
-    const hashedPassword = await bcrypt.hash(req.body.password, 10)
-    const user = { name : req.body.name, password: hashedPassword }
-    users.push(user)
-    console.log(users)
-})
 app.post('/user/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(req.body.password, 10)
     const user = { name : req.body.name, password: hashedPassword }
@@ -37,10 +31,19 @@ app.post('/user/register', async (req, res) => {
     console.log(users)
 })
 app.post('/user/signin', async (req, res) => {
-    const hashedPassword = await bcrypt.hash(req.body.password, 10)
-    const user = { name : req.body.name, password: hashedPassword }
-    users.push(user)
-    console.log(users)
+    const user = users.find(user => user.name === req.body.name)
+    if (!user) {
+        res.status(400).send("User not found")
+    }
+    try {
+        if(await bcrypt.compare(req.body.password, user.password)) {
+            res.send("Success")
+        } else {
+            res.send("Not allowed")
+        }
+    } catch (error) {
+        res.status(500).json({msg: "An error occured, try again later"})
+    }
 })
 
 
