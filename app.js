@@ -3,7 +3,7 @@ import axios from 'axios'
 import bcrypt from 'bcrypt'
 import cors from 'cors'
 import './db-connection.js'
-import { MongoClient } from 'mongodb'
+import { Decimal128, MongoClient } from 'mongodb'
 import 'dotenv/config'
 
 const app = express()
@@ -40,18 +40,18 @@ app.post('/user/register', async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(req.body.password, 10)
         // create a document to be inserted
-        const user = { name: req.body.name, password: hashedPassword }
+        const user = { name: req.body.name, password: hashedPassword, email: req.body.email }
         await mongoConnection('crypto', 'users')
         const result = await collection.updateOne(
             { name: user.name },
-            { $set: { password: hashedPassword } },
+            { $set: { password: hashedPassword, email: user.email, isLoggedIn: true, balance: Decimal128.fromString('1000.00') } },
             { upsert: true }
         )
 
         if (result.upsertedCount === 0) {
-            res.json({ msg: 'User Already exists' })
+            res.json({ msg: 'User Already exists'})
         } else {
-            res.json({ msg: 'Welcome to crypto world!' })
+            res.json({ msg: 'Welcome to crypto world!', redirect: '/user/profile' })
         }
         console.log(result)
     } catch (error) {
