@@ -1,6 +1,7 @@
 import express from 'express'
 import axios from 'axios'
 import bcrypt from 'bcrypt'
+import cors from 'cors'
 import './db-connection.js'
 import { MongoClient } from 'mongodb'
 import 'dotenv/config'
@@ -11,6 +12,9 @@ const client = new MongoClient(process.env.DB_CONNECT)
 
 //Middleware
 app.use(express.json())
+app.use(cors({
+    origin: 'http://localhost:3000'
+}))
 
 //Controllers
 app.get('/', async (req, res) => {
