@@ -82,18 +82,6 @@ setInterval(async () => {
                 // client.close()
             }
         })
-    // const {
-    //     id,
-    //     symbol,
-    //     name,
-    //     image,
-    //     current_price,
-    //     high_24h,
-    //     low_24h,
-    //     price_change_24h,
-    //     price_change_percentage_24h,
-    //     last_updated,
-    // } = response.data
     } catch (error) {
         console.log(error)
     } finally {
@@ -156,7 +144,7 @@ app.post('/user/signin', async (req, res) => {
         const query = { name: req.body.name }
         const options = {
             // Include only the `name` and `password` fields in the returned document
-            projection: { name: 1, password: 1 },
+            projection: { name: 1, isLoggedIn: 1, wallet: 1 },
         }
         const user = await collection.findOne(query, options)
         // user validation logic with bcrypt
@@ -165,7 +153,7 @@ app.post('/user/signin', async (req, res) => {
         }
         try {
             if (await bcrypt.compare(req.body.password, user.password)) {
-                res.json({ msg: 'Success' })
+                res.json({ msg: 'Success', user, redirect: '/user/profile' })
             } else {
                 res.send({ msg: 'Not allowed' })
             }
