@@ -109,6 +109,7 @@ app.post('/user/register', async (req, res) => {
                     isLoggedIn: true,
                     wallet: {
                         balance: Decimal128.fromString('1000.00'),
+                        portfolio: Decimal128.fromString('0.00'),
                         usd: Decimal128.fromString('1000.00'),
                         btc: Decimal128.fromString('0.00'),
                         eth: Decimal128.fromString('0.00'),
@@ -144,21 +145,23 @@ app.post('/user/signin', async (req, res) => {
         const query = { name: req.body.name }
         const options = {
             // Include only the `name` and `password` fields in the returned document
-            projection: { name: 1, isLoggedIn: 1, wallet: 1 },
+            projection: { name: 1, isLoggedIn: 1, wallet: 1, password: 1 },
         }
         const user = await collection.findOne(query, options)
+        console.log(user)
         // user validation logic with bcrypt
         if (!user) {
             res.status(400).json({ msg: 'User not found' })
         }
         try {
             if (await bcrypt.compare(req.body.password, user.password)) {
-                res.json({ msg: 'Success', user, redirect: '/user/profile' })
+                res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet}, redirect: '/user/profile' })
             } else {
                 res.send({ msg: 'Not allowed' })
             }
         } catch (error) {
             res.status(500).json({ msg: 'An error occured, try again later' })
+            console.log(error)
         }
     } catch (error) {
         res.status(500).json({ msg: 'An error occured, try again later' })
