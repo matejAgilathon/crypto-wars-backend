@@ -170,4 +170,34 @@ app.post('/user/signin', async (req, res) => {
     }
 })
 
+app.post('/user/tradeCrypto', (req, res) => {
+    if (req.body.cryptoName === 'btc' && req.body.tradeType === 'buy' ) {
+        try {
+            (async() => {
+                await mongoConnection('crypto', 'users')
+                await collection.aggregate([ {$match: {name: req.body.userName}},
+                    {$project: {wallet: 
+                        {
+                            balance: 1, 
+                            portfolio: {$add: ['$wallet.portfolio', Decimal128.fromString(req.body.valueInDollars), '$wallet.eth', '$wallet.ada', '$wallet.ltc', '$wallet.doge']},
+                            btc: {$add: ['$wallet.btc', Decimal128.fromString(req.body.valueInDollars)]},
+                            usd: {$subtract: ['$wallet.usd', Decimal128.fromString(req.body.valueInDollars)]},
+                            eth: 1,
+                            ada: 1,
+                            doge: 1,
+                            ltc: 1,
+                        }
+                    }},
+                    {$merge: 'users'}
+                ]
+                ).toArray()
+                const user = await collection.findOne({name: req.body.userName})
+                res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet}})
+            })()
+        } catch (error) {
+            console.log(error)
+        }
+    }
+})
+
 app.listen(PORT, () => console.log('app is listening on a port 5000'))
