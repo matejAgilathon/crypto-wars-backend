@@ -115,8 +115,18 @@ app.post('/user/register', async (req, res) => {
                         eth: Decimal128.fromString('0.00'),
                         ada: Decimal128.fromString('0.00'),
                         doge: Decimal128.fromString('0.00'),
-                        ltc: Decimal128.fromString('0.00')
-                    }
+                        ltc: Decimal128.fromString('0.00'),
+                        btcInDollars: Decimal128.fromString('0.00'),
+                        ethInDollars: Decimal128.fromString('0.00'),
+                        adaInDollars: Decimal128.fromString('0.00'),
+                        dogeInDollars: Decimal128.fromString('0.00'),
+                        ltcInDollars: Decimal128.fromString('0.00')
+                    },
+                    btcRef: ObjectId('61094259ddaf80e6dadc0f02'),
+                    ethRef: ObjectId('61094259ddaf80e6dadc0f03'),
+                    adaRef: ObjectId('61094259ddaf80e6dadc0f04'),
+                    dogeRef: ObjectId('61094259ddaf80e6dadc0f05'),
+                    ltcRef: ObjectId('61094259ddaf80e6dadc0f06')
                 },
             },
             { upsert: true }
@@ -171,32 +181,43 @@ app.post('/user/signin', async (req, res) => {
 })
 
 app.post('/user/tradeCrypto', (req, res) => {
-    if (req.body.cryptoName === 'btc' && req.body.tradeType === 'buy' ) {
-        try {
-            (async() => {
-                await mongoConnection('crypto', 'users')
+    try {
+        (async() => {
+            await mongoConnection('crypto', 'users')
+            if (req.body.tradeType === 'buy' ) {
+                let coin = req.body.cryptoName
                 await collection.aggregate([ {$match: {name: req.body.userName}},
-                    {$project: {wallet: 
+                    {
+                        $lookup:
                         {
-                            balance: 1, 
-                            portfolio: {$add: ['$wallet.portfolio', Decimal128.fromString(req.body.valueInDollars), '$wallet.eth', '$wallet.ada', '$wallet.ltc', '$wallet.doge']},
-                            btc: {$add: ['$wallet.btc', Decimal128.fromString(req.body.valueInDollars)]},
+                            from: 'cryptos',
+                            localField: `${coin}Ref`,
+                            foreignField: '_id',
+                            as: `${coin}Data`
+                        }
+                    },
+                    { $unwind: `$${coin}Data`},
+                    {$set: {wallet: 
+                        {
+                            [coin]: {$add: [`$wallet.${coin}`, {$divide:  [Decimal128.fromString(req.body.valueInDollars), `$${coin}Data.current_price`]} ]},
                             usd: {$subtract: ['$wallet.usd', Decimal128.fromString(req.body.valueInDollars)]},
-                            eth: 1,
-                            ada: 1,
-                            doge: 1,
-                            ltc: 1,
+                            [`${coin}InDollars`]: {$add: [`$${coin}InDollars`, Decimal128.fromString(req.body.valueInDollars)]}
+                        }
+                    }},
+                    {$set: {wallet: 
+                        {
+                            portfolio: {$add: [{$multiply: ['$wallet.btc', `$${coin}Data.current_price`]}, '$wallet.ethInDollars', '$wallet.adaInDollars', '$wallet.ltcInDollars', '$wallet.dogeInDollars']}
                         }
                     }},
                     {$merge: 'users'}
                 ]
                 ).toArray()
-                const user = await collection.findOne({name: req.body.userName})
-                res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet}})
-            })()
-        } catch (error) {
-            console.log(error)
-        }
+            }
+            const user = await collection.findOne({name: req.body.userName})
+            res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet}})
+        })()
+    } catch (error) {
+        console.log(error)
     }
 })
 
