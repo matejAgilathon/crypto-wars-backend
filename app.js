@@ -201,12 +201,40 @@ app.post('/user/tradeCrypto', (req, res) => {
                         {
                             [coin]: {$add: [`$wallet.${coin}`, {$divide:  [Decimal128.fromString(req.body.valueInDollars), `$${coin}Data.current_price`]} ]},
                             usd: {$subtract: ['$wallet.usd', Decimal128.fromString(req.body.valueInDollars)]},
-                            [`${coin}InDollars`]: {$add: [`$${coin}InDollars`, Decimal128.fromString(req.body.valueInDollars)]}
+                            [`${coin}InDollars`]: {$add: [ `$wallet.${coin}InDollars`, Decimal128.fromString(req.body.valueInDollars)]}
                         }
                     }},
                     {$set: {wallet: 
                         {
-                            portfolio: {$add: [{$multiply: ['$wallet.btc', `$${coin}Data.current_price`]}, '$wallet.ethInDollars', '$wallet.adaInDollars', '$wallet.ltcInDollars', '$wallet.dogeInDollars']}
+                            portfolio: {$add: ['$wallet.btcInDollars', '$wallet.ethInDollars', '$wallet.adaInDollars', '$wallet.ltcInDollars', '$wallet.dogeInDollars']}
+                        }
+                    }},
+                    {$merge: 'users'}
+                ]
+                ).toArray()
+            } else if (req.body.tradeType === 'sell' ) {
+                let coin = req.body.cryptoName
+                await collection.aggregate([ {$match: {name: req.body.userName}},
+                    {
+                        $lookup:
+                        {
+                            from: 'cryptos',
+                            localField: `${coin}Ref`,
+                            foreignField: '_id',
+                            as: `${coin}Data`
+                        }
+                    },
+                    { $unwind: `$${coin}Data`},
+                    {$set: {wallet: 
+                        {
+                            [coin]: {$subtract: [`$wallet.${coin}`, {$divide:  [Decimal128.fromString(req.body.valueInDollars), `$${coin}Data.current_price`]} ]},
+                            usd: {$add: ['$wallet.usd', Decimal128.fromString(req.body.valueInDollars)]},
+                            [`${coin}InDollars`]: {$subtract: [ `$wallet.${coin}InDollars`, Decimal128.fromString(req.body.valueInDollars)]}
+                        }
+                    }},
+                    {$set: {wallet: 
+                        {
+                            portfolio: {$add: ['$wallet.btcInDollars', '$wallet.ethInDollars', '$wallet.adaInDollars', '$wallet.ltcInDollars', '$wallet.dogeInDollars']}
                         }
                     }},
                     {$merge: 'users'}
