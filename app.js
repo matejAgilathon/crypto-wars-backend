@@ -108,8 +108,8 @@ app.post('/user/register', async (req, res) => {
                     email: user.email,
                     isLoggedIn: true,
                     wallet: {
-                        balance: Decimal128.fromString('1000.00'),
-                        portfolio: Decimal128.fromString('0.00'),
+                        // balance: Decimal128.fromString('1000.00'),
+                        // portfolio: Decimal128.fromString('0.00'),
                         usd: Decimal128.fromString('1000.00'),
                         btc: Decimal128.fromString('0.00'),
                         eth: Decimal128.fromString('0.00'),
@@ -197,6 +197,7 @@ app.post('/user/tradeCrypto', (req, res) => {
                         }
                     },
                     { $unwind: `$${coin}Data`},
+                    // {$project: { `${coin}Data.current_price`: 1 }},
                     {$set: {wallet: 
                         {
                             [coin]: {$add: [`$wallet.${coin}`, {$divide:  [Decimal128.fromString(req.body.valueInDollars), `$${coin}Data.current_price`]} ]},
@@ -232,11 +233,11 @@ app.post('/user/tradeCrypto', (req, res) => {
                             [`${coin}InDollars`]: {$subtract: [ `$wallet.${coin}InDollars`, Decimal128.fromString(req.body.valueInDollars)]}
                         }
                     }},
-                    {$set: {wallet: 
-                        {
-                            portfolio: {$add: ['$wallet.btcInDollars', '$wallet.ethInDollars', '$wallet.adaInDollars', '$wallet.ltcInDollars', '$wallet.dogeInDollars']}
-                        }
-                    }},
+                    // {$set: {wallet: 
+                    //     {
+                    //         portfolio: {$add: ['$wallet.btcInDollars', '$wallet.ethInDollars', '$wallet.adaInDollars', '$wallet.ltcInDollars', '$wallet.dogeInDollars']}
+                    //     }
+                    // }},
                     {$merge: 'users'}
                 ]
                 ).toArray()
@@ -248,5 +249,15 @@ app.post('/user/tradeCrypto', (req, res) => {
         console.log(error)
     }
 })
+
+
+//  intervals for nodemailer
+setInterval(function(){ // Set interval for checking
+    var date = new Date() // Create a Date object to find out what time it is
+    if(date.getHours() === 15 && date.getMinutes() === 44){ // Check the time
+        // Do stuff
+        console.log('radi')
+    }
+}, 6000) // Repeat every 60000 milliseconds (1 minute)
 
 app.listen(PORT, () => console.log('app is listening on a port 5000'))
