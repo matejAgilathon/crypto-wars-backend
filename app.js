@@ -1,6 +1,7 @@
 import express from 'express'
 import axios from 'axios'
 import bcrypt from 'bcrypt'
+import { createTransport } from 'nodemailer'
 import cors from 'cors'
 import './db-connection.js'
 import { Decimal128, MongoClient, ObjectId } from 'mongodb'
@@ -250,14 +251,71 @@ app.post('/user/tradeCrypto', (req, res) => {
     }
 })
 
+app.post('/user/notification', (req, res) => {
+    try {
+        (async() => {
+            await mongoConnection('crypto', 'users')
+            await collection.updateOne({name: req.body.name}, {$set: {notificationTime: [req.body.hours, req.body.minutes]}})
+            res.json({msg: 'Notification time successfully set!'})
+        })()
+        console.log(req.body)
+    } catch (error) {
+        console.log(error)
+    } finally {
+        // client.close()
+    }    
+})
 
 //  intervals for nodemailer
-setInterval(function(){ // Set interval for checking
+setInterval(async function(){ // Set interval for checking
+    await mongoConnection('crypto', 'cryptos')
+    const btcPriceInDollars = await collection.find({symbol: 'btc'}).project({current_price: 1}).toArray()
+    const ethPriceInDollars = await collection.find({symbol: 'eth'}).project({current_price: 1}).toArray()
+    const adaPriceInDollars = await collection.find({symbol: 'ada'}).project({current_price: 1}).toArray()
+    const dogePriceInDollars = await collection.find({symbol: 'doge'}).project({current_price: 1}).toArray()
+    const ltcPriceInDollars = await collection.find({symbol: 'ltc'}).project({current_price: 1}).toArray()
+    await mongoConnection('crypto', 'users')
+    const result = await collection.aggregate([
+        {
+            $match: { notificationTime: {$exists: true} }
+        },
+        {
+            $project: { _id: 0, email: 1, notificationTime: 1, wallet: 1 }
+        }
+    ]).toArray()
     var date = new Date() // Create a Date object to find out what time it is
-    if(date.getHours() === 15 && date.getMinutes() === 44){ // Check the time
-        // Do stuff
-        console.log('radi')
-    }
-}, 6000) // Repeat every 60000 milliseconds (1 minute)
+    result.forEach(user => {
+        if (user.notificationTime) {
+            if(date.getHours() === Number(user.notificationTime[0]) && date.getMinutes() === Number(user.notificationTime[1])){ // Check the time
+                // Do stuff
+                const balanceOfBtc = (parseFloat(user.wallet.btc).toFixed(8) * btcPriceInDollars[0].current_price).toFixed(2)
+                //send mails
+                const userEmail = user.email
+                var transporter = createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: 'matej.pavic92@gmail.com',
+                        pass: 'nwqncqxlfovgkopw'
+                    }
+                })
+                  
+                var mailOptions = {
+                    from: 'matej.pavic92@gmail.com',
+                    to: userEmail,
+                    subject: 'Crypto wallet info',
+                    text: `Your amounth of btc is ${balanceOfBtc} $`
+                }
+                  
+                transporter.sendMail(mailOptions, function(error, info){
+                    if (error) {
+                        console.log(error)
+                    } else {
+                        console.log('Email sent: ' + info.response)
+                    }
+                })
+            }
+        }
+    })
+}, 60000) // Repeat every 60000 milliseconds (1 minute)
 
 app.listen(PORT, () => console.log('app is listening on a port 5000'))
