@@ -278,7 +278,7 @@ setInterval(async function(){ // Set interval for checking
     var date = new Date() // Create a Date object to find out what time it is
     result.forEach(user => {
         if (user.notificationTime) {
-            if(date.getHours() != Number(user.notificationTime[0]) && date.getMinutes() != Number(user.notificationTime[1])){ // Check the time
+            if(date.getHours() === Number(user.notificationTime[0]) && date.getMinutes() === Number(user.notificationTime[1])){ // Check the time
                 // Do stuff
                 const balanceOfBtc = (parseFloat(user.wallet.btc).toFixed(8) * btcPriceInDollars[0].current_price).toFixed(2)
                 const balanceOfEth = (parseFloat(user.wallet.eth).toFixed(8) * ethPriceInDollars[0].current_price).toFixed(2)
@@ -299,7 +299,7 @@ setInterval(async function(){ // Set interval for checking
             }
         }
     })
-}, 6000) // Repeat every 60000 milliseconds (1 minute)
+}, 60000) // Repeat every 60000 milliseconds (1 minute)
 
 
 app.listen(PORT, () => console.log('app is listening on a port 5000'))
