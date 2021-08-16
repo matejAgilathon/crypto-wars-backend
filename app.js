@@ -1,11 +1,11 @@
 import express from 'express'
 import axios from 'axios'
 import bcrypt from 'bcrypt'
-import { createTransport } from 'nodemailer'
 import cors from 'cors'
 import './db-connection.js'
 import { Decimal128, MongoClient, ObjectId } from 'mongodb'
 import 'dotenv/config'
+import Mailer from './mailer.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -109,8 +109,6 @@ app.post('/user/register', async (req, res) => {
                     email: user.email,
                     isLoggedIn: true,
                     wallet: {
-                        // balance: Decimal128.fromString('1000.00'),
-                        // portfolio: Decimal128.fromString('0.00'),
                         usd: Decimal128.fromString('1000.00'),
                         btc: Decimal128.fromString('0.00'),
                         eth: Decimal128.fromString('0.00'),
@@ -198,7 +196,6 @@ app.post('/user/tradeCrypto', (req, res) => {
                         }
                     },
                     { $unwind: `$${coin}Data`},
-                    // {$project: { `${coin}Data.current_price`: 1 }},
                     {$set: {wallet: 
                         {
                             [coin]: {$add: [`$wallet.${coin}`, {$divide:  [Decimal128.fromString(req.body.valueInDollars), `$${coin}Data.current_price`]} ]},
@@ -234,11 +231,6 @@ app.post('/user/tradeCrypto', (req, res) => {
                             [`${coin}InDollars`]: {$subtract: [ `$wallet.${coin}InDollars`, Decimal128.fromString(req.body.valueInDollars)]}
                         }
                     }},
-                    // {$set: {wallet: 
-                    //     {
-                    //         portfolio: {$add: ['$wallet.btcInDollars', '$wallet.ethInDollars', '$wallet.adaInDollars', '$wallet.ltcInDollars', '$wallet.dogeInDollars']}
-                    //     }
-                    // }},
                     {$merge: 'users'}
                 ]
                 ).toArray()
@@ -286,36 +278,28 @@ setInterval(async function(){ // Set interval for checking
     var date = new Date() // Create a Date object to find out what time it is
     result.forEach(user => {
         if (user.notificationTime) {
-            if(date.getHours() === Number(user.notificationTime[0]) && date.getMinutes() === Number(user.notificationTime[1])){ // Check the time
+            if(date.getHours() != Number(user.notificationTime[0]) && date.getMinutes() != Number(user.notificationTime[1])){ // Check the time
                 // Do stuff
                 const balanceOfBtc = (parseFloat(user.wallet.btc).toFixed(8) * btcPriceInDollars[0].current_price).toFixed(2)
+                const balanceOfEth = (parseFloat(user.wallet.eth).toFixed(8) * ethPriceInDollars[0].current_price).toFixed(2)
+                const balanceOfAda = (parseFloat(user.wallet.ada).toFixed(8) * adaPriceInDollars[0].current_price).toFixed(2)
+                const balanceOfDoge = (parseFloat(user.wallet.doge).toFixed(8) * dogePriceInDollars[0].current_price).toFixed(2)
+                const balanceOfLtc = (parseFloat(user.wallet.ltc).toFixed(8) * ltcPriceInDollars[0].current_price).toFixed(2)
+
+                const balanceOfCryptos = {
+                    balanceOfBtc: balanceOfBtc,
+                    balanceOfEth: balanceOfEth,
+                    balanceOfAda: balanceOfAda,
+                    balanceOfDoge: balanceOfDoge,
+                    balanceOfLtc: balanceOfLtc
+                }
                 //send mails
                 const userEmail = user.email
-                var transporter = createTransport({
-                    service: 'gmail',
-                    auth: {
-                        user: 'matej.pavic92@gmail.com',
-                        pass: 'nwqncqxlfovgkopw'
-                    }
-                })
-                  
-                var mailOptions = {
-                    from: 'matej.pavic92@gmail.com',
-                    to: userEmail,
-                    subject: 'Crypto wallet info',
-                    text: `Your amounth of btc is ${balanceOfBtc} $`
-                }
-                  
-                transporter.sendMail(mailOptions, function(error, info){
-                    if (error) {
-                        console.log(error)
-                    } else {
-                        console.log('Email sent: ' + info.response)
-                    }
-                })
+                Mailer('cryptos', userEmail, balanceOfCryptos)
             }
         }
     })
-}, 60000) // Repeat every 60000 milliseconds (1 minute)
+}, 6000) // Repeat every 60000 milliseconds (1 minute)
+
 
 app.listen(PORT, () => console.log('app is listening on a port 5000'))
