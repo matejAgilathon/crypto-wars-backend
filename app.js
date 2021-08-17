@@ -154,7 +154,7 @@ app.post('/user/signin', async (req, res) => {
         const query = { name: req.body.name }
         const options = {
             // Include only the `name` and `password` fields in the returned document
-            projection: { name: 1, isLoggedIn: 1, wallet: 1, password: 1 },
+            projection: { name: 1, isLoggedIn: 1, wallet: 1, password: 1, notificationTime: 1 },
         }
         const user = await collection.findOne(query, options)
         console.log(user)
@@ -164,7 +164,7 @@ app.post('/user/signin', async (req, res) => {
         }
         try {
             if (await bcrypt.compare(req.body.password, user.password)) {
-                res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet}, redirect: '/user/profile' })
+                res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime}, redirect: '/user/profile' })
             } else {
                 res.send({ msg: 'Not allowed' })
             }
@@ -236,7 +236,7 @@ app.post('/user/tradeCrypto', (req, res) => {
                 ).toArray()
             }
             const user = await collection.findOne({name: req.body.userName})
-            res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet}})
+            res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime }})
         })()
     } catch (error) {
         console.log(error)
