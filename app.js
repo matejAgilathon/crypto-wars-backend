@@ -100,6 +100,7 @@ app.post('/user/register', async (req, res) => {
             password: hashedPassword,
             email: req.body.email,
         }
+        Mailer('validation', req.body.email, null)
         await mongoConnection('crypto', 'users')
         const result = await collection.updateOne(
             { name: user.name },
@@ -176,6 +177,19 @@ app.post('/user/signin', async (req, res) => {
         res.status(500).json({ msg: 'An error occured, try again later' })
     } finally {
         await client.close()
+    }
+})
+
+app.get('/user/validate/:email', (req, res) => {
+    try {
+        (async() => {
+            await mongoConnection('crypto', 'users')
+            const result = await collection.updateOne({email: req.params.email}, {$set: {emailValidated: true}})
+            result.matchedCount ? res.json({msg: 'User\'s  email successfuly validated'}).status(301).redirect('http://localhost:3000') : res.json({msg: 'User does not exist'})
+            console.log(result)
+        })()
+    } catch (error) {
+        console.log('Error while validating email')
     }
 })
 
@@ -272,12 +286,12 @@ setInterval(async function(){ // Set interval for checking
             $match: { notificationTime: {$exists: true} }
         },
         {
-            $project: { _id: 0, email: 1, notificationTime: 1, wallet: 1 }
+            $project: { _id: 0, email: 1, notificationTime: 1, wallet: 1, emailValidated: 1 }
         }
     ]).toArray()
     var date = new Date() // Create a Date object to find out what time it is
     result.forEach(user => {
-        if (user.notificationTime) {
+        if (user.notificationTime && user.emailValidated) {
             if(date.getHours() === Number(user.notificationTime[0]) && date.getMinutes() === Number(user.notificationTime[1])){ // Check the time
                 // Do stuff
                 const balanceOfBtc = (parseFloat(user.wallet.btc).toFixed(8) * btcPriceInDollars[0].current_price).toFixed(2)
@@ -300,6 +314,5 @@ setInterval(async function(){ // Set interval for checking
         }
     })
 }, 60000) // Repeat every 60000 milliseconds (1 minute)
-
 
 app.listen(PORT, () => console.log('app is listening on a port 5000'))
