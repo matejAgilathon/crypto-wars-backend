@@ -5,7 +5,9 @@ import cors from 'cors'
 import './db-connection.js'
 import { Decimal128, MongoClient, ObjectId } from 'mongodb'
 import 'dotenv/config'
+import jwt from 'jsonwebtoken'
 import Mailer from './mailer.js'
+import checkAuth from './check-auth.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -136,7 +138,18 @@ app.post('/user/register', async (req, res) => {
         } else {
             const idString = result.upsertedId.toString()
             const newUser = await collection.findOne({_id: ObjectId(idString)})
-            res.json({ msg: 'Welcome to crypto world!', redirect: '/user/profile', newUser })
+            const token = jwt.sign(
+                {
+                    _id: newUser._id,
+                    email: newUser.email
+                },
+                'lozincica123',
+                {
+                    expiresIn: '1h'
+                }
+            )
+
+            res.json({ msg: 'Welcome to crypto world!', redirect: '/user/profile', newUser:{token, name: newUser.name, isloggedIn: newUser.isLoggedIn, wallet: newUser.wallet, notificationTime: newUser.notificationTime} })
             console.log(newUser)
         }
         console.log(result)
@@ -155,17 +168,27 @@ app.post('/user/signin', async (req, res) => {
         const query = { name: req.body.name }
         const options = {
             // Include only the `name` and `password` fields in the returned document
-            projection: { name: 1, isLoggedIn: 1, wallet: 1, password: 1, notificationTime: 1 },
+            projection: { _id: 1, name: 1, isLoggedIn: 1, wallet: 1, password: 1, notificationTime: 1, email:1 },
         }
         const user = await collection.findOne(query, options)
         console.log(user)
+        const token = jwt.sign(
+            {
+                _id: user._id,
+                email: user.email
+            },
+            'lozincica123',
+            {
+                expiresIn: '1h'
+            }
+        )
         // user validation logic with bcrypt
         if (!user) {
             res.status(400).json({ msg: 'User not found' })
         }
         try {
             if (await bcrypt.compare(req.body.password, user.password)) {
-                res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime}, redirect: '/user/profile' })
+                res.json({ msg: 'Success', user:{token, name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime}, redirect: '/user/profile' })
             } else {
                 res.send({ msg: 'Not allowed' })
             }
@@ -193,7 +216,7 @@ app.get('/user/validate/:email', (req, res) => {
     }
 })
 
-app.post('/user/tradeCrypto', (req, res) => {
+app.post('/user/tradeCrypto', checkAuth, (req, res) => {
     try {
         (async() => {
             await mongoConnection('crypto', 'users')
@@ -250,7 +273,7 @@ app.post('/user/tradeCrypto', (req, res) => {
                 ).toArray()
             }
             const user = await collection.findOne({name: req.body.userName})
-            res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime }})
+            res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime, token:req.headers.authorization.split(' ')[1] }})
         })()
     } catch (error) {
         console.log(error)
