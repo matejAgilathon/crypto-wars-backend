@@ -3,7 +3,7 @@ import axios from 'axios'
 import bcrypt from 'bcrypt'
 import cors from 'cors'
 import './db-connection.js'
-import { Decimal128, MongoClient, ObjectId } from 'mongodb'
+import { BSONSymbol, Decimal128, MongoClient, ObjectId } from 'mongodb'
 import 'dotenv/config'
 import jwt from 'jsonwebtoken'
 import Mailer from './mailer.js'
@@ -111,6 +111,7 @@ app.post('/user/register', async (req, res) => {
                     password: hashedPassword,
                     email: user.email,
                     isLoggedIn: true,
+                    portfolioPerMinute: [],
                     wallet: {
                         usd: Decimal128.fromString('1000.00'),
                         btc: Decimal128.fromString('0.00'),
@@ -168,10 +169,9 @@ app.post('/user/signin', async (req, res) => {
         const query = { name: req.body.name }
         const options = {
             // Include only the `name` and `password` fields in the returned document
-            projection: { _id: 1, name: 1, isLoggedIn: 1, wallet: 1, password: 1, notificationTime: 1, email:1 },
+            projection: { _id: 1, name: 1, isLoggedIn: 1, wallet: 1, password: 1, notificationTime: 1, email:1, portfolioPerMinute: 1 },
         }
         const user = await collection.findOne(query, options)
-        console.log(user)
         const token = jwt.sign(
             {
                 _id: user._id,
@@ -188,7 +188,7 @@ app.post('/user/signin', async (req, res) => {
         }
         try {
             if (await bcrypt.compare(req.body.password, user.password)) {
-                res.json({ msg: 'Success', user:{token, name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime}, redirect: '/user/profile' })
+                res.json({ msg: 'Success', user:{token, name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime, portfolioPerMinute: user.portfolioPerMinute}, redirect: '/user/profile' })
             } else {
                 res.send({ msg: 'Not allowed' })
             }
@@ -273,7 +273,7 @@ app.post('/user/tradeCrypto', checkAuth, (req, res) => {
                 ).toArray()
             }
             const user = await collection.findOne({name: req.body.userName})
-            res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime, token:req.headers.authorization.split(' ')[1] }})
+            res.json({ msg: 'Success', user:{name: user.name, isloggedIn: user.isLoggedIn, wallet: user.wallet, notificationTime: user.notificationTime, portfolioPerMinute: user.portfolioPerMinute, token:req.headers.authorization.split(' ')[1] }})
         })()
     } catch (error) {
         console.log(error)
@@ -338,4 +338,33 @@ setInterval(async function(){ // Set interval for checking
     })
 }, 60000) // Repeat every 60000 milliseconds (1 minute)
 
+
+setInterval(async function(){ // Set interval for checking
+    await mongoConnection('crypto', 'cryptos')
+    const btcPriceInDollars = await collection.find({symbol: 'btc'}).project({current_price: 1}).toArray()
+    const ethPriceInDollars = await collection.find({symbol: 'eth'}).project({current_price: 1}).toArray()
+    const adaPriceInDollars = await collection.find({symbol: 'ada'}).project({current_price: 1}).toArray()
+    const dogePriceInDollars = await collection.find({symbol: 'doge'}).project({current_price: 1}).toArray()
+    const ltcPriceInDollars = await collection.find({symbol: 'ltc'}).project({current_price: 1}).toArray()
+    await mongoConnection('crypto', 'users')
+    const result = await collection.aggregate([
+        {
+            $match: { notificationTime: {$exists: true} }
+        },
+        {
+            $project: { _id: 0, wallet: 1, name: 1 }
+        }
+    ]).toArray()
+
+    result.forEach(user => {
+        // Do stuff
+        const balanceOfBtc = (parseFloat(user.wallet.btc).toFixed(8) * btcPriceInDollars[0].current_price).toFixed(2)
+        const balanceOfEth = (parseFloat(user.wallet.eth).toFixed(8) * ethPriceInDollars[0].current_price).toFixed(2)
+        const balanceOfAda = (parseFloat(user.wallet.ada).toFixed(8) * adaPriceInDollars[0].current_price).toFixed(2)
+        const balanceOfDoge = (parseFloat(user.wallet.doge).toFixed(8) * dogePriceInDollars[0].current_price).toFixed(2)
+        const balanceOfLtc = (parseFloat(user.wallet.ltc).toFixed(8) * ltcPriceInDollars[0].current_price).toFixed(2)
+        const portfolio = (parseFloat(balanceOfBtc) + parseFloat(balanceOfEth) + parseFloat(balanceOfAda) + parseFloat(balanceOfDoge) + parseFloat(balanceOfLtc)).toFixed(2)
+        collection.updateOne({ name: user.name }, {$push: {portfolioPerMinute: {$each: [portfolio], $slice: -7}}})
+    })
+}, 60000) // Repeat every 60000 milliseconds (1 minute)
 app.listen(PORT, () => console.log('app is listening on a port 5000'))
