@@ -3,7 +3,7 @@ import 'dotenv/config'
 import { MongoClient } from 'mongodb'
 // Connection URI
 
-const uri = process.env.DB_CONNECT
+const uri = decodeURI(encodeURI(process.env.DB_CONNECT))
 // Create a new MongoClient
 const client = new MongoClient(uri)
 
