@@ -12,7 +12,7 @@ import checkAuth from './check-auth.js'
 const app = express()
 const PORT = process.env.PORT || 5000
 const uri = decodeURI(encodeURI(process.env.DB_CONNECT))
-const client = new MongoClient(uri)
+const client = new MongoClient(uri, { useNewUrlParser: true })
 
 //Middleware
 app.use(express.json())

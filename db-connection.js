@@ -5,7 +5,7 @@ import { MongoClient } from 'mongodb'
 
 const uri = decodeURI(encodeURI(process.env.DB_CONNECT))
 // Create a new MongoClient
-const client = new MongoClient(uri)
+const client = new MongoClient(uri, { useNewUrlParser: true })
 
 async function run() {
     try {
