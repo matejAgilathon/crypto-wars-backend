@@ -3,7 +3,7 @@ import axios from 'axios'
 import bcrypt from 'bcrypt'
 import cors from 'cors'
 import './db-connection.js'
-import { BSONSymbol, Decimal128, MongoClient, ObjectId } from 'mongodb'
+import { Decimal128, MongoClient, ObjectId } from 'mongodb'
 import 'dotenv/config'
 import jwt from 'jsonwebtoken'
 import Mailer from './mailer.js'
@@ -11,7 +11,7 @@ import checkAuth from './check-auth.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
-const client = new MongoClient(process.env.DB_CONNECT)
+const client = new MongoClient(encodeURIComponent(process.env.DB_CONNECT))
 
 //Middleware
 app.use(express.json())
