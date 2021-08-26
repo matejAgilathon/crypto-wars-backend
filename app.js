@@ -18,9 +18,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true })
 //Middleware
 app.use(express.json())
 app.use(
-    cors({
-        origin: 'https://crypto-wars.herokuapp.com',
-    })
+    cors()
 )
     
 let collection
