@@ -4,14 +4,14 @@ import { MongoClient } from 'mongodb'
 // Connection URI
 
 // const uri = decodeURI(encodeURI(process.env.DB_CONNECT))
-const uri = 'mongodb+srv://matej:123cry#pto456@cluster0.vd3aw.mongodb.net/crypto?retryWrites=true&w=majority'
+const uri = process.env.DB_CONNECT
 // Create a new MongoClient
-const client = new MongoClient()
+const client = new MongoClient(uri, { useNewUrlParser: true })
 
 async function run() {
     try {
     // Connect the client to the server
-        await client.connect(uri, { useNewUrlParser: true })
+        await client.connect()
         // Establish and verify connection
         await client.db('crypto').command({ ping: 1 })
         console.log('Connected successfully to server')

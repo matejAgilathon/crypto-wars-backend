@@ -12,8 +12,8 @@ import checkAuth from './check-auth.js'
 const app = express()
 const PORT = process.env.PORT || 5000
 // const uri = decodeURI(encodeURI(process.env.DB_CONNECT))
-const uri = 'mongodb+srv://matej:123cry#pto456@cluster0.vd3aw.mongodb.net/crypto?retryWrites=true&w=majority'
-const client = new MongoClient()
+const uri = process.env.DB_CONNECT
+const client = new MongoClient(uri, { useNewUrlParser: true })
 
 //Middleware
 app.use(express.json())
@@ -25,7 +25,7 @@ app.use(
     
 let collection
 const mongoConnection = async (databaseName, collectionName) => {
-    await client.connect(uri, { useNewUrlParser: true })
+    await client.connect()
     const db = client.db(databaseName)
     collection = db.collection(collectionName)
 }
