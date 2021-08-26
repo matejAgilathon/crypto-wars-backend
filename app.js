@@ -125,11 +125,11 @@ app.post('/user/register', async (req, res) => {
                         dogeInDollars: Decimal128.fromString('0.00'),
                         ltcInDollars: Decimal128.fromString('0.00')
                     },
-                    btcRef: ObjectId('61094259ddaf80e6dadc0f02'),
-                    ethRef: ObjectId('61094259ddaf80e6dadc0f03'),
-                    adaRef: ObjectId('61094259ddaf80e6dadc0f04'),
-                    dogeRef: ObjectId('61094259ddaf80e6dadc0f05'),
-                    ltcRef: ObjectId('61094259ddaf80e6dadc0f06')
+                    btcRef: ObjectId('61274920dbacc116b2e5c892'),
+                    ethRef: ObjectId('61274920dbacc116b2e5c8fd'),
+                    adaRef: ObjectId('61274920dbacc116b2e5c915'),
+                    dogeRef: ObjectId('61274921dbacc116b2e5c931'),
+                    ltcRef: ObjectId('61274921dbacc116b2e5c943')
                 },
             },
             { upsert: true }
