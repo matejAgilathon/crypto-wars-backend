@@ -210,7 +210,7 @@ app.get('/user/validate/:email', (req, res) => {
         (async() => {
             await mongoConnection('crypto', 'users')
             const result = await collection.updateOne({email: req.params.email}, {$set: {emailValidated: true}})
-            result.matchedCount ? res.json({msg: 'User\'s  email successfuly validated'}).status(301).redirect('http://localhost:3000') : res.json({msg: 'User does not exist'})
+            result.matchedCount ? res.json({msg: 'User\'s  email successfuly validated'}).status(301) : res.json({msg: 'User does not exist'})
             console.log(result)
         })()
     } catch (error) {
